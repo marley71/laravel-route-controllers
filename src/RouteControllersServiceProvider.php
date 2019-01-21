@@ -6,7 +6,7 @@ use Illuminate\Support\ServiceProvider;
 use Gecche\Multidomain\Foundation\Console\DomainCommand;
 use Gecche\Multidomain\Foundation\Console\AddDomainCommand;
 use Gecche\Multidomain\Foundation\Console\UpdateEnvDomainCommand;
-use Marley71\Console\GenerateCommand;
+use Marley71\RouteControllers\Console\GenerateCommand;
 
 class RouteControllersServiceProvider extends ServiceProvider {
 
