@@ -1,0 +1,30 @@
+{
+  "name": "marley71/laravel-route-controllers",
+  "description": "auogenerating route from controllers",
+  "keywords": ["laravel", "route", "controllers"],
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Pier Paolo Ciullo",
+      "email": "ciullo@gmail.com"
+    }
+  ],
+  "require": {
+    "laravel/framework": "5.5.*"
+  },
+  "autoload": {
+    "psr-4": {
+      "Marley71\\Console\\": "src/"
+    },
+    "files": [
+
+    ]
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+
+      ]
+    }
+  }
+}
