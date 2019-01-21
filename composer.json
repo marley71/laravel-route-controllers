@@ -14,7 +14,7 @@
   },
   "autoload": {
     "psr-4": {
-      "Marley71\\Console\\": "src/"
+      "Marley71\\RouteControllers": "src/"
     },
     "files": [
 
@@ -23,7 +23,7 @@
   "extra": {
     "laravel": {
       "providers": [
-
+        "Marley71\\RouteControllers\\RouteControllersServiceProvider"
       ]
     }
   }
