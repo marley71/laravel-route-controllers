@@ -14,7 +14,7 @@
   },
   "autoload": {
     "psr-4": {
-      "Marley71\\RouteControllers": "src/"
+      "Marley71\\RouteControllers\\": "src/"
     },
     "files": [
 
