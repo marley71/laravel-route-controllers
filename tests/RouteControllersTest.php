@@ -47,8 +47,97 @@ class RouteControllersTest extends TestCase
             echo "-------------------------";
         }
         // --path=Auth --class=RegisterController
-        $response = $this->get('/simple');
-        echo $response->content();
-        $response->assertStatus(200);
+        $test_routes = [
+            'get' => [
+                'simple' => [
+                    'route_params' => [],
+                    'form_params' => [],
+                ],
+                'with-param' => [
+                    'route_params' => ['p1','p2'],
+                    'form_params' => [],
+                ],
+            ],
+            'post' => [
+                'simple' => [
+                    'route_params' => [],
+                    'form_params' => [],
+                ]
+            ],
+            'any' => [
+                'simple' => [
+                    'route_params' => [],
+                    'form_params' => [],
+                ]
+            ],
+            'put' => [
+                'simple' => [
+                    'route_params' => [],
+                    'form_params' => [],
+                ]
+            ],
+            'patch' => [
+                'simple' => [
+                    'route_params' => [],
+                    'form_params' => [],
+                ]
+            ],
+            'options' => [
+                'simple' => [
+                    'route_params' => [],
+                    'form_params' => [],
+                ]
+            ],
+            'delete' => [
+                'simple' => [
+                    'route_params' => [],
+                    'form_params' => [],
+                ]
+            ]
+        ];
+
+        $post_routes = ['simple'];
+        foreach ($test_routes as $verb => $item) {
+            foreach ($item as $route => $params) {
+                $realRoute = count($params['route_params'])?$route."/".join("/",$params['route_params']):$route;
+                switch ($verb) {
+                    case 'get':
+                    case 'any':
+                        $response = $this->get($realRoute);
+                        echo $response->content() . "\n";
+                        $response->assertStatus(200);
+                        break;
+                    case 'post':
+                        $response = $this->post($realRoute,$params['form_params']);
+                        echo $response->content() . "\n";
+                        $response->assertStatus(200);
+                        break;
+                    case 'put':
+                        $response = $this->put($realRoute,$params['form_params']);
+                        echo $response->content() . "\n";
+                        $response->assertStatus(200);
+                        break;
+                    case 'patch':
+                        $response = $this->patch($realRoute,$params['form_params']);
+                        echo $response->content() . "\n";
+                        $response->assertStatus(200);
+                        break;
+                    case 'options':
+//                        $response = $this->($realRoute,$params['form_params']);
+//                        echo $response->content();
+//                        $response->assertStatus(200);
+                        break;
+                    case 'delete':
+                        $response = $this->delete($realRoute,$params['form_params']);
+                        echo $response->content() . "\n";
+                        $response->assertStatus(200);
+                        break;
+                    default:
+                        throw new \Exception("Invalid verb  $verb");
+                }
+            }
+
+
+        }
     }
 }
