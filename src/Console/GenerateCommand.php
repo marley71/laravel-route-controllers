@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Config;
 class GenerateCommand extends Command
 {
     protected $types = ['web','api','string'];
-    protected $prefixes = ['get','post','put'];//,'put','delete','any','create'];
+    protected $prefixes = ['get','post','put','delete','any','patch','options'];
     protected $type = null;
     protected $code = "";
     /**
