@@ -1,22 +1,24 @@
 <?php namespace Marley71\RouteControllers\Console;
 
+use Illuminate\Console\Command;
 use Illuminate\Console\GeneratorCommand;
 use Illuminate\Support\Facades\Config;
 
-class GenerateCommand extends GeneratorCommand
+class GenerateCommand extends Command
 {
-
-
-
+    protected $types = ['web','api','string'];
+    protected $prefixes = ['get','post','put'];//,'put','delete','any','create'];
+    protected $type = null;
+    protected $code = "";
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'route:generate 
-                            {type : The type route generate web or api } 
-                            {--tag : The optional values for the tagged route } 
-                            {--path : path controller}';
+    protected $signature = 'route-controllers:generate 
+                            {type : The type route generate web or api or string (with string print output code)} 
+                            {--path= : path controller}
+                            {--class= : class controller}';
 
 
     protected $description = "generate route from controllers and add in routes.web.php o routes.api.php";
@@ -27,97 +29,127 @@ class GenerateCommand extends GeneratorCommand
      */
     public function handle()
     {
-        echo "deh";
+        $this->type = $this->argument('type');
+        $path = $this->option('path')?"Http/Controllers/".$this->option('path'):"Http/Controllers";
+        $cls = $this->option('class');
+
+        $filesPath = app_path($path);
+        $classes = $this->_getControllerClasses($filesPath);
+        //print_r($classes);
+
+        if ($cls) {
+            $classes = [$cls];
+        }
+        foreach ($classes as $controller) {
+            $className = str_replace('.php','',$controller);
+            $pathNameSpace = str_replace("/","\\",$path);
+            $cName = '\\App\\' . $pathNameSpace . '\\'.studly_case($className);
+            $methods =$this->getMethods($cName);
+            $this->dumpRoute($cName,$methods);
+        }
+
+        return $this->code;
 
     }
 
+    protected function getMethods($cName) {
 
-    /**
-     * Get the stub file for the generator.
-     *
-     * @return string
-     */
-    protected function getStub()
-    {
-        if ($this->files->exists($this->getDomainEnvFilePath())) {
-            return $this->getDomainEnvFilePath();
-        }
-        return base_path() . DIRECTORY_SEPARATOR . Config::get('domain.env_stub', '.env');
-    }
-
-    protected function createDomainEnvFile()
-    {
-        $envFilePath = $this->getStub();
-
-        $domainValues = json_decode($this->option("domain_values"), true);
-
-
-        if (!is_array($domainValues)) {
-            $domainValues = array();
+        $methods = [];
+        foreach ($this->prefixes as $p) {
+            $methods[$p] = [];
         }
 
 
-        $envArray = $this->getVarsArray($envFilePath);
-
-        $domainEnvFilePath = $this->getDomainEnvFilePath();
-
-        $domainEnvArray = array_merge($envArray, $domainValues);
-        $domainEnvFileContents = $this->makeDomainEnvFileContents($domainEnvArray);
-
-        $this->files->put($domainEnvFilePath, $domainEnvFileContents);
-    }
-
-    public function createDomainStorageDirs()
-    {
-        $storageDirs = Config::get('domain.storage_dirs', array());
-        $path = $this->getDomainStoragePath($this->domain);
-        $rootPath = storage_path();
-        if ($this->files->exists($path) && !$this->option('force')) {
-            return;
-        }
-
-        if ($this->files->exists($path)) {
-            $this->files->deleteDirectory($path);
-        }
+        $cObj = new $cName;
 
 
-        $this->createRecursiveDomainStorageDirs($rootPath, $path, $storageDirs);
+        $f = new \ReflectionClass($cName);
+        $methods = array();
+        foreach ($f->getMethods() as $m) {
+            //echo $m->class . "\n";
+            //echo "strip " . stripslashes($cName) . " con " . stripslashes($m->class) . "\n";
+            if (stripslashes($cName) == stripslashes($m->class)) {
+                //$methods[] = $m->name;
+                $r = new \ReflectionMethod($cName,$m->name);
 
+                foreach ($this->prefixes as $pre) {
+                    if (strpos($m->name, $pre) === 0) {
+                        $methods[$pre][] = [$m->name,$r->getParameters()];
+                    }
+                }
 
-    }
-
-    protected function createRecursiveDomainStorageDirs($rootPath, $path, $dirs)
-    {
-        $this->files->makeDirectory($path, 0755, true);
-        foreach (['.gitignore', '.gitkeep'] as $gitFile) {
-            $rootGitPath = $rootPath . DIRECTORY_SEPARATOR . $gitFile;
-            if ($this->files->exists($rootGitPath)) {
-                $gitPath = $path . DIRECTORY_SEPARATOR . $gitFile;
-                $this->files->copy($rootGitPath, $gitPath);
             }
         }
-        foreach ($dirs as $subdir => $subsubdirs) {
-            $fullPath = $path . DIRECTORY_SEPARATOR . $subdir;
-            $fullRootPath = $rootPath . DIRECTORY_SEPARATOR . $subdir;
-            $this->createRecursiveDomainStorageDirs($fullRootPath, $fullPath, $subsubdirs);
-        }
-
+        return $methods;
     }
 
-    protected function addDomainToConfigFile($config) {
-        $domains = array_get($config, 'domains', []);
-        if (!array_key_exists($this->domain, $domains)) {
-            $domains[$this->domain] = $this->domain;
+    protected function dumpRoute($className,$methods) {
+
+        if ($this->type == 'string') {
+            $contents = "";
+        } else {
+            $fileName = base_path($this->type=='web'?"routes/web.php":"routes/api.php");
+            $contents = file_get_contents($fileName);
         }
 
-        ksort($domains);
-        $config['domains'] = $domains;
+        $tagBegin = "#Begin$className";
+        $tagEnd = "#End$className";
 
-        return $config;
+        $tagBeginPos = strpos($contents,$tagBegin);
+        $tagEndPos = strpos($contents,$tagEnd);
+        if ( ($tagBeginPos === FALSE && $tagEndPos === FALSE) ||
+            ($tagBeginPos !== FALSE && $tagEndPos !== FALSE) ) {
+            $code = "$tagBegin\n";
+            foreach ($methods as $prefix => $names) {
+                foreach ($names as $name) {
+                    //echo "$prefix name $name .\n";
+                    //$route = kebab_case(substr($name,strlen($prefix)));
+                    $route = $this->_getRouteString($name,$prefix);
+                    $code .= "Route::$prefix(\"$route\",\"$className@" . $name[0] . "\");\n";
+                }
+
+            }
+
+            $code .= $tagEnd."\n";
+
+            if ($tagBeginPos === FALSE && $tagEndPos === FALSE) {
+                $contents .= "\n" . $code;
+            } else {
+                if ($tagEndPos < $tagBeginPos)
+                    throw new \Exception('Invalid tags found ' . $className);
+
+                $contents = substr($contents,0,$tagBeginPos) . $code . substr($contents,$tagEndPos+strlen($tagEnd));
+            }
+            $this->code .= "\n" . $code . "\n";
+            if ($this->type=="string")
+                $this->info($code);
+            else
+                file_put_contents($fileName,$contents);
+
+        } else {
+            throw new \Exception('Invalid tags found ' . $className);
+        }
     }
 
+    private function _getRouteString($methodInfo,$prefix) {
+        $route = kebab_case(substr($methodInfo[0],strlen($prefix)));
+        foreach ($methodInfo[1] as $param) {
+            $name = $param->getName();
+            $route .= '/{'.$name;
+            $route .= $param->isOptional()?'?}':'}';
+        }
+        return $route;
+    }
 
-
-
-
+    private function _getControllerClasses($path) {
+        $controllers = [];
+        foreach (new \DirectoryIterator($path) as $fileInfo) {
+            if($fileInfo->isDot()) continue;
+            $ext = strtolower($fileInfo->getExtension());
+            if (in_array($ext, ['php']))
+                $controllers[] = $fileInfo->getBasename();
+            //echo $fileInfo->getFilename() . "\n";
+        }
+        return $controllers;
+    }
 }
